@@ -3,127 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Undian Urutan Tampil LKBB</title>
+  <title>Pengundian Urutan Tampil LKBB - Live Zoom</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f0f2f5;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { text-align: center; color: #38bdf8; margin-bottom: 5px; }
+    p.sub { text-align: center; color: #94a3b8; margin-bottom: 25px; }
+    
+    .controls {
       display: flex;
       justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .card {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
-    h2 { margin-bottom: 20px; color: #1a73e8; }
-    .form-group { text-align: left; margin-bottom: 15px; }
-    label { font-weight: bold; display: block; margin-bottom: 5px; }
-    input, select {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
+      gap: 15px;
+      margin-bottom: 30px;
     }
     button {
-      width: 100%;
-      padding: 12px;
-      background: #1a73e8;
-      color: white;
+      padding: 12px 25px;
+      font-size: 18px;
+      font-weight: bold;
       border: none;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    button:disabled { background: #ccc; }
-    #resultBox {
-      margin-top: 25px;
-      padding: 15px;
       border-radius: 8px;
-      background: #e8f0fe;
-      display: none;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .nomor-urut {
-      font-size: 48px;
+    #btnStart { background: #22c55e; color: white; }
+    #btnStart:hover { background: #16a34a; }
+    #btnStop { background: #ef4444; color: white; }
+    #btnStop:hover { background: #dc2626; }
+    button:disabled { background: #475569 !important; opacity: 0.5; cursor: not-allowed; }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 15px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .prov-name {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .number-box {
+      font-size: 36px;
       font-weight: bold;
-      color: #1a73e8;
-      margin: 10px 0;
+      color: #f59e0b;
+      background: #0f172a;
+      border-radius: 6px;
+      padding: 10px 0;
+      border: 1px solid #475569;
     }
+    .card.done { border-color: #38bdf8; }
+    .card.done .number-box { color: #38bdf8; }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>Undian Urutan Tampil</h2>
-  <form id="undianForm">
-    <div class="form-group">
-      <label>Nama Sekolah / Kontingen</label>
-      <input type="text" id="namaSekolah" required placeholder="Contoh: SMAN 1 Jakarta">
-    </div>
-    <div class="form-group">
-      <label>Provinsi</label>
-      <input type="text" id="provinsi" required placeholder="Contoh: DKI Jakarta">
-    </div>
-    <button type="submit" id="btnSubmit">Kocok Nomor Urut</button>
-  </form>
+  <h1>UNDIAN URUTAN TAMPIL LKBB</h1>
+  <p class="sub">Pengocokan Serentak 30 Provinsi Secara Transparan</p>
 
-  <div id="resultBox">
-    <h3>Nomor Urut Anda:</h3>
-    <div class="nomor-urut" id="nomorDisplay">-</div>
-    <p>Data berhasil tersimpan ke sistem!</p>
+  <div class="controls">
+    <button id="btnStart" onclick="startRoll()">▶ Mulai Acak Semuanya</button>
+    <button id="btnStop" onclick="stopRoll()" disabled>⏹ Hentikan & Kunci Nomor</button>
   </div>
-</div>
+
+  <div class="grid-container" id="grid"></div>
 
 <script>
-  // GANTI URL DI BAWAH INI DENGAN URL GOOGLE APPS SCRIPT ANDA
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKHgFC5OMGAC3Q86vMJ4zNqTUxmH0fAMA8noP-dxt9swDKZwTLeYbbBh_VBoaYItuSMA/exec";
+  // Daftar 30 Provinsi (Bisa disesuaikan nama-namanya)
+  const daftarProvinsi = [
+    "DKI Jakarta", "Jawa Barat", "Jawa Tengah", "Jawa Timur", "Banten",
+    "D.I. Yogyakarta", "Bali", "Lampung", "Sumatra Selatan", "Sumatra Utara",
+    "Sumatra Barat", "Riau", "Jambi", "Bengkulu", "Aceh",
+    "Kalimantan Barat", "Kalimantan Tengah", "Kalimantan Selatan", "Kalimantan Timur", "Kalimantan Utara",
+    "Sulawesi Selatan", "Sulawesi Utara", "Sulawesi Tengah", "Sulawesi Tenggara", "Gorontalo",
+    "Nusa Tenggara Barat", "Nusa Tenggara Timur", "Maluku", "Papua", "Papua Barat"
+  ];
 
-  document.getElementById('undianForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const btn = document.getElementById('btnSubmit');
-    const resultBox = document.getElementById('resultBox');
-    btn.disabled = true;
-    btn.innerText = "Mengambil Nomor...";
+  let intervalId = null;
+  const grid = document.getElementById('grid');
 
-    const payload = {
-      namaSekolah: document.getElementById('namaSekolah').value,
-      provinsi: document.getElementById('provinsi').value
-    };
-
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if(data.result === 'success') {
-        document.getElementById('nomorDisplay').innerText = data.nomor;
-        resultBox.style.display = 'block';
-        document.getElementById('undianForm').style.display = 'none';
-      } else {
-        alert("Gagal: " + data.message);
-        btn.disabled = false;
-        btn.innerText = "Kocok Nomor Urut";
-      }
-    })
-    .catch(err => {
-      alert("Terjadi kesalahan koneksi.");
-      btn.disabled = false;
-      btn.innerText = "Kocok Nomor Urut";
+  // Render awal 30 kotak
+  function initGrid() {
+    grid.innerHTML = '';
+    daftarProvinsi.forEach((prov, i) => {
+      grid.innerHTML += `
+        <div class="card" id="card-${i}">
+          <div class="prov-name">${i+1}. ${prov}</div>
+          <div class="number-box" id="num-${i}">?</div>
+        </div>
+      `;
     });
-  });
-</script>
+  }
 
+  // Efek animasi angka berjalan cepat di semua kotak
+  function startRoll() {
+    document.getElementById('btnStart').disabled = true;
+    document.getElementById('btnStop').disabled = false;
+    
+    intervalId = setInterval(() => {
+      daftarProvinsi.forEach((_, i) => {
+        document.getElementById(`num-${i}`).innerText = Math.floor(Math.random() * 30) + 1;
+      });
+    }, 50); // Kecepatan acak (ms)
+  }
+
+  // Menghentikan acakan dan menentukan nomor 1-30 secara Unik (Tanpa Duplikat)
+  function stopRoll() {
+    clearInterval(intervalId);
+    document.getElementById('btnStop').disabled = true;
+
+    // Generate Array [1, 2, ..., 30] lalu di-shuffle
+    let nomorUrut = Array.from({length: 30}, (_, i) => i + 1);
+    
+    // Algoritma Fisher-Yates Shuffle
+    for (let i = nomorUrut.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [nomorUrut[i], nomorUrut[j]] = [nomorUrut[j], nomorUrut[i]];
+    }
+
+    // Masukkan nomor unik ke masing-masing kotak provinsi
+    daftarProvinsi.forEach((_, i) => {
+      const elNum = document.getElementById(`num-${i}`);
+      const elCard = document.getElementById(`card-${i}`);
+      elNum.innerText = nomorUrut[i] < 10 ? '0' + nomorUrut[i] : nomorUrut[i];
+      elCard.classList.add('done');
+    });
+  }
+
+  initGrid();
+</script>
 </body>
 </html>
